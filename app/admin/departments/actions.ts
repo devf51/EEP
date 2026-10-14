@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { failTo } from "@/lib/form";
+import { failOnConflict, failTo } from "@/lib/form";
 import { can } from "@/lib/rules";
 import { requireEmployee } from "@/lib/session";
 
@@ -17,12 +17,19 @@ export async function createDepartment(fd: FormData) {
   const parsed = DepartmentName.safeParse(fd.get("name") ?? "");
   if (!parsed.success) failTo(path, parsed.error.issues[0].message);
   const name = parsed.data;
-  if (await prisma.department.findUnique({ where: { name } })) failTo(path, "มีแผนกนี้แล้ว");
 
-  await prisma.$transaction(async (tx) => {
-    const d = await tx.department.create({ data: { name } });
-    await tx.auditLog.create({ data: { actorId: me.id, action: "department.create", entity: "Department", entityId: d.id, after: { name } } });
-  });
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        if (await tx.department.findUnique({ where: { name } })) failTo(path, "มีแผนกนี้แล้ว");
+        const d = await tx.department.create({ data: { name } });
+        await tx.auditLog.create({ data: { actorId: me.id, action: "department.create", entity: "Department", entityId: d.id, after: { name } } });
+      },
+      { isolationLevel: "Serializable" },
+    );
+  } catch (e) {
+    failOnConflict(e, path, "มีแผนกนี้แล้ว");
+  }
   revalidatePath(path);
   redirect(path);
 }
