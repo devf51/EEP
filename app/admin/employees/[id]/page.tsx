@@ -20,10 +20,16 @@ export default async function EditEmployeePage({ params, searchParams }: {
   if (!target) notFound();
 
   const blocked = validateEmployeeChange(me, target.id, target.roles, target.roles);
-  const [departments, managers] = await Promise.all([
+  // The current manager stays selectable even when inactive, so saving does not clear it.
+  const [departments, managerRows] = await Promise.all([
     prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.employee.findMany({ where: { active: true, NOT: { id } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.employee.findMany({
+      where: { NOT: { id }, OR: [{ active: true }, ...(target.managerId ? [{ id: target.managerId }] : [])] },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, active: true },
+    }),
   ]);
+  const managers = managerRows.map((m) => ({ id: m.id, name: m.active ? m.name : `${m.name} (ปิดใช้งาน)` }));
 
   return (
     <div className="space-y-4">
