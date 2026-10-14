@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { confirmContribution } from "@/app/actions";
 import { ContributionCard } from "@/components/ContributionCard";
 import { NoAccess } from "@/components/NoAccess";
 import { db, findEmployee } from "@/lib/data";
@@ -48,7 +49,11 @@ export default async function Portfolio({ params }: { params: Promise<{ id: stri
         <section className="space-y-2">
           <h2 className="font-semibold text-amber-700">รอคุณยืนยัน (หัวหน้าเติมให้)</h2>
           {pending.map((c) => (
-            <ContributionCard key={c.id} c={c} />
+            <ContributionCard key={c.id} c={c}>
+              <form action={confirmContribution.bind(null, c.id)} className="mt-3">
+                <button className="rounded bg-amber-600 px-3 py-1 text-sm text-white">ยืนยันว่าเป็นผลงานของฉัน</button>
+              </form>
+            </ContributionCard>
           ))}
         </section>
       )}
