@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { CATEGORY_LABEL, db, findEmployee, type Category } from "@/lib/data";
-import { canAddContribution, canEndorse, isMember, isSafeEvidenceUrl } from "@/lib/rules";
+import { canAddContribution, canEndorse, isMember, isSafeEvidenceUrl, parseScore, reviewTypeFor, visibleContributions } from "@/lib/rules";
 import { currentUser } from "@/lib/session";
 
 export async function switchUser(formData: FormData) {
@@ -60,4 +60,24 @@ export async function endorse(contributionId: string) {
   if (!c || !project || !canEndorse(me, c, project)) throw new Error("forbidden");
   c.endorsedBy.push(me.id);
   revalidatePath(`/projects/${project.id}`);
+}
+
+export async function submitReview(ownerId: string, formData: FormData) {
+  const me = await currentUser();
+  const owner = findEmployee(ownerId);
+  const type = owner && reviewTypeFor(me, owner);
+  if (!owner || !type) throw new Error("forbidden");
+
+  const scores: Record<string, number> = {};
+  for (const k of db.criteria) {
+    const s = parseScore(String(formData.get(k.id) ?? ""));
+    if (s === null) throw new Error(`invalid score for ${k.id}`);
+    scores[k.id] = s;
+  }
+  const allowed = new Set(visibleContributions(me, owner.id, db.contributions).filter((c) => c.confirmed).map((c) => c.id));
+  const evidenceIds = formData.getAll("evidence").map(String).filter((id) => allowed.has(id));
+
+  db.reviews = db.reviews.filter((r) => !(r.revieweeId === owner.id && r.reviewerId === me.id && r.type === type));
+  db.reviews.push({ revieweeId: owner.id, reviewerId: me.id, type, scores, comment: String(formData.get("comment") ?? "").trim(), evidenceIds });
+  redirect(`/people/${owner.id}`);
 }
