@@ -13,7 +13,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   return (
     <div className="mx-auto mt-16 max-w-sm space-y-4 rounded border bg-white p-6">
       <h1 className="text-xl font-bold">เข้าสู่ระบบ EEP</h1>
-      <ErrorBanner message={error ? (ERRORS[error] ?? "เข้าสู่ระบบไม่สำเร็จ ลองอีกครั้ง") : undefined} />
+      <ErrorBanner message={error ? (Object.hasOwn(ERRORS, error) ? ERRORS[error] : "เข้าสู่ระบบไม่สำเร็จ ลองอีกครั้ง") : undefined} />
       <form
         action={async () => {
           "use server";
