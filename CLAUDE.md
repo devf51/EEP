@@ -15,7 +15,15 @@ EEP is an employee-evaluation system built around evidence-based work portfolios
 
 ## Commands
 
-Not scaffolded yet. Once the app exists, add commands here for dev, build, lint, test, running a single test, and Prisma migrate/generate.
+The prototype app lives in `prototype/`. Run these from there:
+
+- `npm run dev`: dev server at http://localhost:3000. Switch demo users from the header dropdown.
+- `npm run build`: production build plus type check
+- `npm run lint`: ESLint
+- `npm test`: rule tests (`node:test`, `lib/**/*.test.ts`)
+- Single test: `node --test --test-name-pattern="endorse" lib/rules.test.ts`
+
+Current state: clickable prototype. Data is in-memory in `prototype/lib/data.ts` (resets on restart), the "login" is a `demoUser` cookie, and all permission rules live in `prototype/lib/rules.ts`. Prisma/Postgres and Auth.js replace these in build step 1.
 
 ## Domain model
 
