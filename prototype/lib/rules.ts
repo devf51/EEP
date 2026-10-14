@@ -1,4 +1,8 @@
-import type { Contribution, Criterion, Employee, Project } from "./data.ts";
+import { CATEGORY_LABEL, type Category, type Contribution, type Criterion, type Employee, type Project } from "./data.ts";
+
+export function isCategory(s: string): s is Category {
+  return Object.hasOwn(CATEGORY_LABEL, s);
+}
 
 export function isMember(p: Project, employeeId: string): boolean {
   return p.members.some((m) => m.employeeId === employeeId);
@@ -17,7 +21,7 @@ export function canViewProject(viewer: Employee, p: Project): boolean {
 }
 
 export function canEndorse(viewer: Employee, c: Contribution, p: Project): boolean {
-  return c.confirmed && c.ownerId !== viewer.id && isMember(p, viewer.id) && !c.endorsedBy.includes(viewer.id);
+  return c.confirmed && c.ownerId !== viewer.id && c.addedById !== viewer.id && isMember(p, viewer.id) && !c.endorsedBy.includes(viewer.id);
 }
 
 export function reviewTypeFor(viewer: Employee, owner: Employee): "self" | "manager" | null {

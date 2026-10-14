@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { db } from "./data.ts";
 import {
-  canAddContribution, canEndorse, canViewPortfolio, canViewProject, isSafeEvidenceUrl,
+  canAddContribution, canEndorse, isCategory, canViewPortfolio, canViewProject, isSafeEvidenceUrl,
   parseScore, reviewTypeFor, visibleContributions, weightedScore,
 } from "./rules.ts";
 
@@ -44,6 +44,13 @@ test("endorse: not own, not twice, members only, confirmed only", () => {
   assert.equal(canEndorse(emp("e3"), con("c4"), proj("p1")), false); // not a member
   assert.equal(canEndorse(emp("e1"), con("c4"), proj("p1")), true);
   assert.equal(canEndorse(emp("e1"), con("c5"), proj("p2")), false); // pending
+  const byM1 = { ...con("c4"), ownerId: "e1", addedById: "m1", projectId: "p1", confirmed: true, endorsedBy: [] };
+  assert.equal(canEndorse(emp("m1"), byM1, proj("p1")), false); // adder can't endorse
+});
+
+test("category: own keys only", () => {
+  assert.equal(isCategory("docs"), true);
+  for (const k of ["__proto__", "toString", "constructor"]) assert.equal(isCategory(k), false);
 });
 
 test("review type: self, own manager, nobody else", () => {

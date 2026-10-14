@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { confirmContribution } from "@/app/actions";
+import { confirmContribution, rejectContribution } from "@/app/actions";
 import { ContributionCard } from "@/components/ContributionCard";
 import { NoAccess } from "@/components/NoAccess";
 import { db, findEmployee } from "@/lib/data";
 import { canAddContribution, canViewPortfolio, isMember, reviewTypeFor, visibleContributions } from "@/lib/rules";
 import { currentUser } from "@/lib/session";
 
-export default async function Portfolio({ params }: { params: Promise<{ id: string }> }) {
+export default async function Portfolio({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ added?: string }> }) {
   const { id } = await params;
+  const { added } = await searchParams;
   const me = await currentUser();
   const owner = findEmployee(id);
   if (!owner || !canViewPortfolio(me, owner)) return <NoAccess />;
@@ -25,7 +26,7 @@ export default async function Portfolio({ params }: { params: Promise<{ id: stri
           <p className="text-sm text-gray-600">{owner.title}</p>
         </div>
         <div className="flex gap-2 text-sm">
-          {canAddContribution(me, owner) && (
+          {canAddContribution(me, owner) && projects.length > 0 && (
             <Link href={`/people/${owner.id}/new`} className="rounded bg-blue-700 px-3 py-1.5 text-white">+ บันทึกผลงาน</Link>
           )}
           {reviewTypeFor(me, owner) && (
@@ -33,6 +34,10 @@ export default async function Portfolio({ params }: { params: Promise<{ id: stri
           )}
         </div>
       </header>
+
+      {added === "pending" && (
+        <div className="rounded bg-amber-50 p-3 text-sm text-amber-900">บันทึกแล้ว รอเจ้าตัวยืนยันก่อนขึ้นพอร์ต</div>
+      )}
 
       <section>
         <h2 className="mb-2 font-semibold">โปรเจกต์และบทบาท</h2>
@@ -50,9 +55,14 @@ export default async function Portfolio({ params }: { params: Promise<{ id: stri
           <h2 className="font-semibold text-amber-700">รอคุณยืนยัน (หัวหน้าเติมให้)</h2>
           {pending.map((c) => (
             <ContributionCard key={c.id} c={c}>
-              <form action={confirmContribution.bind(null, c.id)} className="mt-3">
-                <button className="rounded bg-amber-600 px-3 py-1 text-sm text-white">ยืนยันว่าเป็นผลงานของฉัน</button>
-              </form>
+              <div className="mt-3 flex gap-2">
+                <form action={confirmContribution.bind(null, c.id)}>
+                  <button className="rounded bg-amber-600 px-3 py-1 text-sm text-white">ยืนยันว่าเป็นผลงานของฉัน</button>
+                </form>
+                <form action={rejectContribution.bind(null, c.id)}>
+                  <button className="rounded border px-3 py-1 text-sm">ไม่ใช่ผลงานของฉัน</button>
+                </form>
+              </div>
             </ContributionCard>
           ))}
         </section>

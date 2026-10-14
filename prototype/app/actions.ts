@@ -3,8 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { CATEGORY_LABEL, db, findEmployee, type Category } from "@/lib/data";
-import { canAddContribution, canEndorse, isMember, isSafeEvidenceUrl, parseScore, reviewTypeFor, visibleContributions } from "@/lib/rules";
+import { db, findEmployee } from "@/lib/data";
+import { canAddContribution, canEndorse, isCategory, isMember, isSafeEvidenceUrl, parseScore, reviewTypeFor, visibleContributions } from "@/lib/rules";
 import { currentUser } from "@/lib/session";
 
 export async function switchUser(formData: FormData) {
@@ -26,7 +26,7 @@ export async function addContribution(ownerId: string, formData: FormData) {
   if (!project || !isMember(project, owner.id)) throw new Error("invalid project");
   if (!summary) throw new Error("summary required");
   if (!isSafeEvidenceUrl(evidenceUrl)) throw new Error("evidence must be an http(s) link");
-  if (!(category in CATEGORY_LABEL)) throw new Error("invalid category");
+  if (!isCategory(category)) throw new Error("invalid category");
 
   db.contributions.push({
     id: crypto.randomUUID(),
@@ -37,12 +37,12 @@ export async function addContribution(ownerId: string, formData: FormData) {
     impact: String(formData.get("impact") ?? "").trim(),
     evidenceUrl,
     skills: String(formData.get("skills") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-    category: category as Category,
+    category,
     confirmed: me.id === owner.id, // manager-added → owner must confirm
     endorsedBy: [],
     createdAt: new Date().toISOString().slice(0, 10),
   });
-  redirect(`/people/${owner.id}`);
+  redirect(`/people/${owner.id}${me.id === owner.id ? "" : "?added=pending"}`);
 }
 
 export async function confirmContribution(id: string) {
@@ -50,6 +50,14 @@ export async function confirmContribution(id: string) {
   const c = db.contributions.find((x) => x.id === id);
   if (!c || c.ownerId !== me.id) throw new Error("forbidden");
   c.confirmed = true;
+  revalidatePath(`/people/${me.id}`);
+}
+
+export async function rejectContribution(id: string) {
+  const me = await currentUser();
+  const c = db.contributions.find((x) => x.id === id);
+  if (!c || c.ownerId !== me.id || c.confirmed) throw new Error("forbidden");
+  db.contributions = db.contributions.filter((x) => x.id !== id);
   revalidatePath(`/people/${me.id}`);
 }
 

@@ -36,7 +36,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         <section className="space-y-4 md:sticky md:top-4 md:self-start">
           {self && (
             <div className="rounded bg-blue-50 p-3 text-sm text-blue-900">
-              ประเมินตัวเอง: คะแนนรวม {weightedScore(self.scores, db.criteria)} / 5. &ldquo;{self.comment}&rdquo;
+              ประเมินตัวเอง: คะแนนรวม {weightedScore(self.scores, db.criteria)} / 5 · &ldquo;{self.comment}&rdquo;
             </div>
           )}
           {db.criteria.map((k) => (
