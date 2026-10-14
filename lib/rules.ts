@@ -1,6 +1,7 @@
 export type GrantedRole = "HR" | "ADMIN";
 export type Actor = { id: string; roles: GrantedRole[] };
-export type Person = { id: string; managerId: string | null };
+// roles: the target's stored roles; omit when unknown (treated as none).
+export type Person = { id: string; managerId: string | null; roles?: GrantedRole[] };
 export type Action = "employee.view" | "employee.manage" | "department.manage" | "audit.view" | "role.grant";
 
 export function isHrOrAdmin(a: Actor): boolean {
@@ -13,7 +14,10 @@ export function can(actor: Actor, action: Action, target?: Person): boolean {
     case "employee.view":
       return !!target && (target.id === actor.id || target.managerId === actor.id || isHrOrAdmin(actor));
     case "employee.manage":
-      return isHrOrAdmin(actor) && target?.id !== actor.id;
+      // With a target, defer to validateEmployeeChange so both always agree.
+      return target
+        ? validateEmployeeChange(actor, target.id, target.roles ?? [], target.roles ?? []) === null
+        : isHrOrAdmin(actor);
     case "department.manage":
       return isHrOrAdmin(actor);
     case "audit.view":

@@ -24,6 +24,20 @@ test("employee.manage: HR or admin, never on own record", () => {
   assert.equal(can(actor("nok", ["HR"]), "employee.manage", person("mali", "somchai")), true);
 });
 
+test("employee.manage with target agrees with validateEmployeeChange (HR cannot edit an admin)", () => {
+  const hr = actor("nok", ["HR"]);
+  const admin = actor("root", ["ADMIN"]);
+  const adminTarget = { id: "root2", managerId: null, roles: ["ADMIN" as const] };
+  assert.equal(can(hr, "employee.manage", adminTarget), false);
+  assert.equal(can(admin, "employee.manage", adminTarget), true);
+  assert.equal(can(hr, "employee.manage", { id: "mali", managerId: null, roles: ["HR" as const] }), true);
+  for (const a of [hr, admin, actor("mali")]) {
+    for (const t of [adminTarget, { id: "mali", managerId: null, roles: [] }, { id: a.id, managerId: null, roles: [] }]) {
+      assert.equal(can(a, "employee.manage", t), validateEmployeeChange(a, t.id, t.roles, t.roles) === null);
+    }
+  }
+});
+
 test("department.manage: HR or admin; audit.view: admin only", () => {
   assert.equal(can(actor("nok", ["HR"]), "department.manage"), true);
   assert.equal(can(actor("mali"), "department.manage"), false);
