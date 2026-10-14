@@ -1,20 +1,36 @@
 import "dotenv/config";
 import { prisma } from "../lib/db";
+import { normalizeEmail } from "../lib/rules";
 
+// Bootstrap only: does nothing once an active admin exists, so a re-run can never re-promote anyone.
 async function ensureAdmin() {
-  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const email = normalizeEmail(process.env.SEED_ADMIN_EMAIL ?? "");
   if (!email) throw new Error("Set SEED_ADMIN_EMAIL in .env");
-  const existing = await prisma.employee.findUnique({ where: { email } });
-  if (!existing) {
-    await prisma.employee.create({
-      data: { email, name: process.env.SEED_ADMIN_NAME?.trim() || "Admin", roles: ["ADMIN"] },
-    });
-  } else if (!existing.active || !existing.roles.includes("ADMIN")) {
-    await prisma.employee.update({
-      where: { email },
-      data: { active: true, roles: [...new Set([...existing.roles, "ADMIN" as const])] },
-    });
+  if (await prisma.employee.findFirst({ where: { active: true, roles: { has: "ADMIN" } } })) {
+    console.log("admin exists, skipping");
+    return;
   }
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.employee.findUnique({ where: { email } });
+    const admin = existing
+      ? await tx.employee.update({
+          where: { email },
+          data: { active: true, roles: [...new Set([...existing.roles, "ADMIN" as const])] },
+        })
+      : await tx.employee.create({
+          data: { email, name: process.env.SEED_ADMIN_NAME?.trim() || "Admin", roles: ["ADMIN"] },
+        });
+    const snap = (e: typeof admin) => ({
+      name: e.name, email: e.email, position: e.position, departmentId: e.departmentId,
+      managerId: e.managerId, active: e.active, roles: e.roles,
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId: admin.id, action: "employee.bootstrap-admin", entity: "Employee", entityId: admin.id,
+        before: existing ? snap(existing) : undefined, after: snap(admin),
+      },
+    });
+  });
   console.log(`admin: ${email}`);
 }
 

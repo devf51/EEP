@@ -27,7 +27,7 @@
   - **Employee:** implicit for everyone.
   - **Manager:** derived from `managerId`, direct reports only.
   - **HR, ADMIN:** granted and stored in `Employee.roles`.
-- HR or admin registers employees and grants or revokes HR. **Only an admin grants, revokes or edits ADMIN.** Nobody edits their own record through admin screens.
+- HR or admin registers and edits employees. **Only an admin grants or revokes HR/ADMIN, edits an admin, or changes an employee's email.** Nobody edits their own record through admin screens.
 - Login: any Google account, but only if its email belongs to an **active** `Employee`. Emails are stored trimmed and lowercased.
 - Every employee or department change writes an `AuditLog` row with actor, action, and before/after values.
 - Deactivate instead of delete. An employee who still has active direct reports cannot be deactivated.

@@ -19,7 +19,7 @@ export default async function AuditPage() {
           <tbody>
             {entries.map((e) => (
               <tr key={e.id} className="border-t align-top">
-                <td className="p-2 whitespace-nowrap">{e.createdAt.toLocaleString("th-TH")}</td>
+                <td className="p-2 whitespace-nowrap">{e.createdAt.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</td>
                 <td className="p-2">{e.actor.name}</td>
                 <td className="p-2">{e.action}</td>
                 <td className="p-2">{e.entity} {e.entityId}</td>

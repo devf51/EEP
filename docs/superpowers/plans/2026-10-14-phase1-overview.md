@@ -16,9 +16,17 @@ Phase 1 = the MVP in `docs/spec.md` ("ฟังก์ชัน", rows marked 1 (
   - Employee is implicit.
   - Manager is derived from `managerId`.
   - HR and ADMIN are granted.
-  - HR or admin registers employees and grants HR.
-  - Only admin grants ADMIN.
+  - HR or admin registers and edits employees.
+  - Only admin grants or revokes HR/ADMIN and changes an employee's email.
   - Nobody changes their own record through admin screens.
 - **Authorization:** pure functions in `lib/rules.ts` (`can(actor, action, target?)` and the org/role validators), unit-tested with `node:test`. Every page and server action calls them on the server.
 - **Audit:** a minimal `AuditLog` table exists from step 1. Every employee or role change writes before/after values. Phase 2 extends it.
 - **Reuse from the prototype** (branch `feat/prototype`, `prototype/lib/rules.ts`): step 2 ports the contribution/endorse rules and their tests, and step 3 ports `parseScore`/`weightedScore` and the review-type rule. Port the logic, not the in-memory store.
+
+## Carry-over before steps 2 and 3
+
+1. Bind the Google `sub`, or keep the employee id in the JWT, so a changed or reused email cannot resolve to another person's session [before step 2].
+2. One manual sign-in with a real Google OAuth client [before step 2].
+3. Per-entity redaction on the audit page before reviews are audited [before step 3].
+4. Optional DB CHECK `email = lower(btrim(email))`.
+5. `AUTH_URL` / `AUTH_TRUST_HOST` and the production redirect URI when deploying.
