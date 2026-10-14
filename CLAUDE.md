@@ -15,7 +15,13 @@ EEP is an employee-evaluation system built around evidence-based work portfolios
 
 ## Commands
 
-Not scaffolded yet. Once the app exists, add commands here for dev, build, lint, test, running a single test, and Prisma migrate/generate.
+- `npm run db:dev`: local Postgres via `prisma dev`. Put its direct `postgres://` URL in `.env` as `DATABASE_URL` (see `.env.example`).
+- `npx prisma migrate dev`: apply/create migrations. `npx prisma db seed`: ensure the first admin (`SEED_ADMIN_EMAIL`), plus a demo org when `SEED_DEMO=1`.
+- `npm run dev`: app at http://localhost:3000. With `AUTH_DEV_LOGIN=1`, `/signin` also offers a dev-only email login for registered employees.
+- `npm run build` (includes type check), `npm run lint`
+- `npm test`: rule tests (`node:test`, `lib/**/*.test.ts`). Single test: `node --test --test-name-pattern="cycle" lib/rules.test.ts`
+
+Permission and org rules live in `lib/rules.ts` as pure functions. Pages and server actions must call them; never check roles inline.
 
 ## Domain model
 
@@ -49,4 +55,4 @@ After the MVP comes Phase 2 (360°, KPI/OKR, biweekly reminders, dashboards/expo
 
 ## Repo
 
-Remote: <https://github.com/devf51/EEP>. A throwaway clickable prototype lives on branch `feat/prototype` (not merged).
+Remote: <https://github.com/devf51/EEP>. The throwaway prototype is on branch `feat/prototype` (not merged).
