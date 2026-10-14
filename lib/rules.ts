@@ -18,9 +18,12 @@ export function can(actor: Actor, action: Action, target?: Person): boolean {
       return isHrOrAdmin(actor);
     case "audit.view":
       return actor.roles.includes("ADMIN");
+    default:
+      return false;
   }
 }
 
+// beforeRoles MUST be the roles stored in the database, never a client-supplied value.
 // Returns a Thai error message, or null when the change is allowed. targetId null = creating.
 export function validateEmployeeChange(
   actor: Actor,
@@ -58,7 +61,7 @@ export function allowSignIn(
   emailVerified: unknown,
 ): boolean {
   if (!employee?.active) return false;
-  return provider !== "google" || emailVerified === true;
+  return provider === "dev" || (provider === "google" && emailVerified === true);
 }
 
 export function normalizeEmail(s: string): string {

@@ -39,6 +39,7 @@ test("role changes: HR grants HR, only admin touches ADMIN, nobody edits self", 
   assert.match(validateEmployeeChange(hr, "mali", [], ["ADMIN"]) ?? "", /แอดมิน/);
   assert.match(validateEmployeeChange(hr, null, [], ["ADMIN"]) ?? "", /แอดมิน/);
   assert.match(validateEmployeeChange(hr, "root2", ["ADMIN"], ["ADMIN"]) ?? "", /แอดมิน/); // HR editing an admin
+  assert.equal(validateEmployeeChange(hr, "root2", ["ADMIN"], []), "เฉพาะแอดมินเท่านั้นที่แก้ข้อมูลของแอดมินได้"); // HR cannot demote an admin
   assert.equal(validateEmployeeChange(admin, "root2", ["ADMIN"], []), null);
   assert.equal(validateEmployeeChange(admin, "mali", [], ["ADMIN", "HR"]), null);
   assert.match(validateEmployeeChange(admin, "root", ["ADMIN"], ["ADMIN"]) ?? "", /ตัวเอง/);
@@ -62,6 +63,10 @@ test("sign-in: active registered employee only; Google email must be verified", 
   assert.equal(allowSignIn({ active: true }, "google", false), false);
   assert.equal(allowSignIn({ active: true }, "google", true), true);
   assert.equal(allowSignIn({ active: true }, "dev", undefined), true);
+  // deny by default: unknown/missing provider, and non-boolean verified flag
+  assert.equal(allowSignIn({ active: true }, undefined, true), false);
+  assert.equal(allowSignIn({ active: true }, "github", true), false);
+  assert.equal(allowSignIn({ active: true }, "google", "true"), false);
 });
 
 test("email is trimmed and lowercased", () => {
