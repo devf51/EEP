@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { Employee } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { failTo } from "@/lib/form";
-import { normalizeEmail, validateEmployeeChange, wouldCreateCycle } from "@/lib/rules";
+import { normalizeEmail, validateEmailChange, validateEmployeeChange, wouldCreateCycle } from "@/lib/rules";
 import { requireEmployee } from "@/lib/session";
 
 const EmployeeInput = z.object({
@@ -76,6 +76,8 @@ export async function updateEmployee(id: string, fd: FormData) {
 
   const denied = validateEmployeeChange(me, target.id, target.roles, data.roles);
   if (denied) failTo(path, denied);
+  const emailDenied = validateEmailChange(me, target.email, data.email);
+  if (emailDenied) failTo(path, emailDenied);
   if (data.email !== target.email && (await prisma.employee.findUnique({ where: { email: data.email } }))) {
     failTo(path, "อีเมลนี้มีในระบบแล้ว");
   }

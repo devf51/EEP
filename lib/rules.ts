@@ -1,7 +1,7 @@
 export type GrantedRole = "HR" | "ADMIN";
 export type Actor = { id: string; roles: GrantedRole[] };
 export type Person = { id: string; managerId: string | null };
-export type Action = "employee.view" | "employee.manage" | "department.manage" | "audit.view";
+export type Action = "employee.view" | "employee.manage" | "department.manage" | "audit.view" | "role.grant";
 
 export function isHrOrAdmin(a: Actor): boolean {
   return a.roles.includes("HR") || a.roles.includes("ADMIN");
@@ -17,6 +17,7 @@ export function can(actor: Actor, action: Action, target?: Person): boolean {
     case "department.manage":
       return isHrOrAdmin(actor);
     case "audit.view":
+    case "role.grant":
       return actor.roles.includes("ADMIN");
     default:
       return false;
@@ -35,8 +36,17 @@ export function validateEmployeeChange(
   if (targetId === actor.id) return "แก้ข้อมูลของตัวเองที่หน้านี้ไม่ได้ ให้ HR หรือแอดมินคนอื่นแก้ให้";
   if (actor.roles.includes("ADMIN")) return null;
   if (beforeRoles.includes("ADMIN")) return "เฉพาะแอดมินเท่านั้นที่แก้ข้อมูลของแอดมินได้";
-  if (afterRoles.includes("ADMIN")) return "เฉพาะแอดมินเท่านั้นที่ให้สิทธิ์แอดมินได้";
+  const before = new Set(beforeRoles);
+  const after = new Set(afterRoles);
+  if (before.size !== after.size || [...after].some((r) => !before.has(r))) {
+    return "เฉพาะแอดมินเท่านั้นที่ให้หรือถอนสิทธิ์ HR และแอดมินได้";
+  }
   return null;
+}
+
+export function validateEmailChange(actor: Actor, beforeEmail: string, afterEmail: string): string | null {
+  if (beforeEmail === afterEmail || actor.roles.includes("ADMIN")) return null;
+  return "เฉพาะแอดมินเท่านั้นที่เปลี่ยนอีเมลของพนักงานได้";
 }
 
 export function wouldCreateCycle(

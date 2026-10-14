@@ -14,10 +14,10 @@ export type EmployeeFormValue = {
 
 const input = "mt-1 w-full rounded border px-3 py-2";
 
-export function EmployeeFields({ departments, managers, canGrantAdmin, value }: {
+export function EmployeeFields({ departments, managers, canGrantRoles, value }: {
   departments: Option[];
   managers: Option[];
-  canGrantAdmin: boolean;
+  canGrantRoles: boolean;
   value?: EmployeeFormValue;
 }) {
   return (
@@ -43,17 +43,20 @@ export function EmployeeFields({ departments, managers, canGrantAdmin, value }: 
           {managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
       </label>
-      <fieldset className="text-sm">
-        <legend>สิทธิ์ที่ได้รับ</legend>
-        <label className="mr-4 inline-flex items-center gap-1">
-          <input type="checkbox" name="roles" value="HR" defaultChecked={value?.roles.includes("HR")} /> {GRANTED_ROLE_LABEL.HR}
-        </label>
-        {canGrantAdmin && (
+      {canGrantRoles ? (
+        <fieldset className="text-sm">
+          <legend>สิทธิ์ที่ได้รับ</legend>
+          <label className="mr-4 inline-flex items-center gap-1">
+            <input type="checkbox" name="roles" value="HR" defaultChecked={value?.roles.includes("HR")} /> {GRANTED_ROLE_LABEL.HR}
+          </label>
           <label className="inline-flex items-center gap-1">
             <input type="checkbox" name="roles" value="ADMIN" defaultChecked={value?.roles.includes("ADMIN")} /> {GRANTED_ROLE_LABEL.ADMIN}
           </label>
-        )}
-      </fieldset>
+        </fieldset>
+      ) : (
+        // Non-admins cannot change roles; post the stored ones back unchanged.
+        (value?.roles ?? []).map((r) => <input key={r} type="hidden" name="roles" value={r} />)
+      )}
       <label className="inline-flex items-center gap-2 text-sm">
         <input type="checkbox" name="active" defaultChecked={value?.active ?? true} /> ใช้งานอยู่
       </label>

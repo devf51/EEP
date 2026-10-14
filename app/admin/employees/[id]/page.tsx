@@ -33,7 +33,7 @@ export default async function EditEmployeePage({ params, searchParams }: {
       ) : (
         <form action={updateEmployee.bind(null, target.id)} className="space-y-4 rounded border bg-white p-4">
           <ErrorBanner message={error} />
-          <EmployeeFields departments={departments} managers={managers} canGrantAdmin={me.roles.includes("ADMIN")} value={target} />
+          <EmployeeFields departments={departments} managers={managers} canGrantRoles={can(me, "role.grant")} value={target} />
           <button className="rounded bg-blue-700 px-4 py-2 text-white">บันทึก</button>
         </form>
       )}

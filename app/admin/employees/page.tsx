@@ -47,7 +47,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
       <form action={createEmployee} className="space-y-4 rounded border bg-white p-4">
         <h2 className="font-semibold">ลงทะเบียนพนักงานใหม่</h2>
         <ErrorBanner message={error} />
-        <EmployeeFields departments={departments} managers={managers} canGrantAdmin={me.roles.includes("ADMIN")} />
+        <EmployeeFields departments={departments} managers={managers} canGrantRoles={can(me, "role.grant")} />
         <button className="rounded bg-blue-700 px-4 py-2 text-white">ลงทะเบียน</button>
       </form>
     </div>

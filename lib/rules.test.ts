@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { allowSignIn, can, normalizeEmail, validateEmployeeChange, wouldCreateCycle, type Actor } from "./rules.ts";
+import { allowSignIn, can, normalizeEmail, validateEmailChange, validateEmployeeChange, wouldCreateCycle, type Actor } from "./rules.ts";
 
 const actor = (id: string, roles: Actor["roles"] = []): Actor => ({ id, roles });
 const person = (id: string, managerId: string | null) => ({ id, managerId });
@@ -31,19 +31,39 @@ test("department.manage: HR or admin; audit.view: admin only", () => {
   assert.equal(can(actor("nok", ["HR"]), "audit.view"), false);
 });
 
-test("role changes: HR grants HR, only admin touches ADMIN, nobody edits self", () => {
+test("role.grant: admin only", () => {
+  assert.equal(can(actor("root", ["ADMIN"]), "role.grant"), true);
+  assert.equal(can(actor("nok", ["HR"]), "role.grant"), false);
+  assert.equal(can(actor("mali"), "role.grant"), false);
+});
+
+test("role changes: only admin grants or revokes HR/ADMIN, nobody edits self", () => {
   const hr = actor("nok", ["HR"]);
   const admin = actor("root", ["ADMIN"]);
-  assert.equal(validateEmployeeChange(hr, "mali", [], ["HR"]), null);
-  assert.equal(validateEmployeeChange(hr, null, [], []), null); // create
+  const adminOnly = "เฉพาะแอดมินเท่านั้นที่ให้หรือถอนสิทธิ์ HR และแอดมินได้";
+  assert.equal(validateEmployeeChange(hr, "mali", [], []), null); // HR edits a non-admin, roles unchanged
+  assert.equal(validateEmployeeChange(hr, null, [], []), null); // create without roles
+  assert.equal(validateEmployeeChange(hr, "mali", ["HR"], ["HR"]), null); // unchanged non-empty roles
+  assert.match(validateEmployeeChange(hr, null, [], ["HR"]) ?? "", /แอดมินเท่านั้น/);
+  assert.equal(validateEmployeeChange(hr, "mali", [], ["HR"]), adminOnly); // HR cannot grant HR
+  assert.equal(validateEmployeeChange(hr, "mali", ["HR"], []), adminOnly); // HR cannot revoke HR
   assert.match(validateEmployeeChange(hr, "mali", [], ["ADMIN"]) ?? "", /แอดมิน/);
   assert.match(validateEmployeeChange(hr, null, [], ["ADMIN"]) ?? "", /แอดมิน/);
   assert.match(validateEmployeeChange(hr, "root2", ["ADMIN"], ["ADMIN"]) ?? "", /แอดมิน/); // HR editing an admin
   assert.equal(validateEmployeeChange(hr, "root2", ["ADMIN"], []), "เฉพาะแอดมินเท่านั้นที่แก้ข้อมูลของแอดมินได้"); // HR cannot demote an admin
+  assert.match(validateEmployeeChange(hr, "nok", ["HR"], ["HR"]) ?? "", /ตัวเอง/); // HR edits own record
   assert.equal(validateEmployeeChange(admin, "root2", ["ADMIN"], []), null);
+  assert.equal(validateEmployeeChange(admin, "mali", [], ["HR"]), null);
   assert.equal(validateEmployeeChange(admin, "mali", [], ["ADMIN", "HR"]), null);
   assert.match(validateEmployeeChange(admin, "root", ["ADMIN"], ["ADMIN"]) ?? "", /ตัวเอง/);
   assert.match(validateEmployeeChange(actor("somchai"), "mali", [], []) ?? "", /สิทธิ์/);
+});
+
+test("email changes: admin only", () => {
+  const hr = actor("nok", ["HR"]);
+  assert.equal(validateEmailChange(hr, "a@x.com", "a@x.com"), null);
+  assert.equal(validateEmailChange(hr, "a@x.com", "b@x.com"), "เฉพาะแอดมินเท่านั้นที่เปลี่ยนอีเมลของพนักงานได้");
+  assert.equal(validateEmailChange(actor("root", ["ADMIN"]), "a@x.com", "b@x.com"), null);
 });
 
 test("reporting line: refuse cycles, terminate on bad data", () => {
