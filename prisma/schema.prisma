@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GrantedRole {
+  HR
+  ADMIN
+}
+
+model Department {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+}
+
+model Employee {
+  id           String        @id @default(cuid())
+  email        String        @unique // always trimmed + lowercased
+  name         String
+  position     String        @default("")
+  roles        GrantedRole[] @default([])
+  active       Boolean       @default(true)
+  departmentId String?
+  department   Department?   @relation(fields: [departmentId], references: [id])
+  managerId    String?
+  manager      Employee?     @relation("Reports", fields: [managerId], references: [id])
+  reports      Employee[]    @relation("Reports")
+  auditEntries AuditLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([managerId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     Employee @relation(fields: [actorId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
