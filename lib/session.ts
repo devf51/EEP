@@ -1,15 +1,15 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { normalizeEmail } from "@/lib/rules";
 
-// Looked up on every request so a deactivated employee loses access immediately.
-export async function currentEmployee() {
-  const email = (await auth())?.user?.email;
-  if (!email) return null;
-  const employee = await prisma.employee.findUnique({ where: { email: normalizeEmail(email) } });
+// Looked up by id (not email) on every request, once per request: a deactivated employee loses access immediately.
+export const currentEmployee = cache(async () => {
+  const id = (await auth())?.employeeId;
+  if (!id) return null;
+  const employee = await prisma.employee.findUnique({ where: { id } });
   return employee?.active ? employee : null;
-}
+});
 
 export async function requireEmployee() {
   const employee = await currentEmployee();

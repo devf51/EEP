@@ -5,6 +5,17 @@ import { prisma } from "@/lib/db";
 import { allowSignIn, normalizeEmail } from "@/lib/rules";
 
 // Dev-only login by registered email, for local testing without Google. Off in production builds.
+declare module "next-auth" {
+  interface Session {
+    employeeId?: string;
+  }
+}
+declare module "@auth/core/jwt" {
+  interface JWT {
+    employeeId?: string;
+  }
+}
+
 export const devLoginEnabled = process.env.NODE_ENV !== "production" && process.env.AUTH_DEV_LOGIN === "1";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -31,6 +42,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!email) return false;
       const employee = await prisma.employee.findUnique({ where: { email } });
       return allowSignIn(employee, account?.provider, profile?.email_verified);
+    },
+    // Bind the session to the employee id at sign-in, so a later email reuse cannot inherit it.
+    async jwt({ token, user }) {
+      if (user?.email) {
+        const employee = await prisma.employee.findUnique({ where: { email: normalizeEmail(user.email) } });
+        token.employeeId = employee?.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.employeeId = token.employeeId;
+      return session;
     },
   },
 });
