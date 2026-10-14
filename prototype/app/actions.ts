@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { CATEGORY_LABEL, db, findEmployee, type Category } from "@/lib/data";
-import { canAddContribution, isMember, isSafeEvidenceUrl } from "@/lib/rules";
+import { canAddContribution, canEndorse, isMember, isSafeEvidenceUrl } from "@/lib/rules";
 import { currentUser } from "@/lib/session";
 
 export async function switchUser(formData: FormData) {
@@ -51,4 +51,13 @@ export async function confirmContribution(id: string) {
   if (!c || c.ownerId !== me.id) throw new Error("forbidden");
   c.confirmed = true;
   revalidatePath(`/people/${me.id}`);
+}
+
+export async function endorse(contributionId: string) {
+  const me = await currentUser();
+  const c = db.contributions.find((x) => x.id === contributionId);
+  const project = c && db.projects.find((p) => p.id === c.projectId);
+  if (!c || !project || !canEndorse(me, c, project)) throw new Error("forbidden");
+  c.endorsedBy.push(me.id);
+  revalidatePath(`/projects/${project.id}`);
 }
